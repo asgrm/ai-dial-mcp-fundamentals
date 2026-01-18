@@ -15,49 +15,46 @@ from agent.constants import DIAL_ENDPOINT, API_KEY
 # Pay attention that `fetch` doesn't have resources and prompts
 
 async def main():
-    #TODO:
-    # 1. Create MCP client and open connection to the MCP server (use `async with {YOUR_MCP_CLIENT} as mcp_client`),
-    #    mcp_server_url="http://localhost:8005/mcp"
-    async with MCPClient(mcp_server_url="http://localhost:8005/mcp") as mcp_client:
-    # 2. Get Available MCP Resources and print them
-        resources = await mcp_client.get_resources()
-        for resource in resources:
-            print(resource)
-    # 3. Get Available MCP Tools, assign to `tools` variable, print tool as well
+
+    # 1. Create MCP client with `docker_image="mcp/duckduckgo:latest"` as `mcp_client`
+    async with MCPClient(docker_image="mcp/duckduckgo:latest") as mcp_client:
+    # 2. Get Available MCP Tools, assign to `tools` variable, print tool as well
         tools = await mcp_client.get_tools()
         for tool in tools:
             print(tool)
-    # 4. Create DialClient
-        dial_client = DialClient(
-            api_key=API_KEY, endpoint=DIAL_ENDPOINT, tools=tools, mcp_client=mcp_client
-        )
-    # 5. Create list with messages and add there SYSTEM_PROMPT with instructions to LLM
-        messages = [
-            Message(role=Role.SYSTEM, content=SYSTEM_PROMPT)
-        ]
-    # 6. Add to messages Prompts from MCP server as User messages
-        prompts: list[Prompt] = await mcp_client.get_prompts()
+
+        print("\n=== Available Prompts ===")
+        prompts= await mcp_client.get_prompts()
         for prompt in prompts:
             print(prompt)
             content = await mcp_client.get_prompt(prompt.name)
-            messages.append(
-                Message(
-                    role=Role.USER,
-                    content=f"## MCP server prompt :\n{prompt.description}\n{content}"
-                )
-            )
-    # 7. Create console chat (infinite loop + ability to exit from chat + preserve message history after the call to dial client)
+            print(content)
+
+    # 3. Create DialClient:
+    #       - api_key=os.getenv("DIAL_API_KEY")
+    #       - endpoint="https://ai-proxy.lab.epam.com"
+    #       - tools=tools
+    #       - mcp_client=mcp_client
+
+        dial_client = DialClient(
+            api_key=API_KEY,
+            endpoint=DIAL_ENDPOINT,
+            tools=tools,
+            mcp_client=mcp_client
+        )
+    # 4. Create list with messages and add there SYSTEM_PROMPT with instructions to LLM
+        messages = []
         print("MCP-based Agent is ready! Type your query or 'exit' to exit.")
+    # 5. Create console chat (infinite loop + ability to exit from chat + preserve message history after the call to dial client)
         while True:
-            query = input("> ").strip()
-            if query.lower() == 'exit':
-                print("exiting the chat")
+            user_input = input("\n> ").strip()
+            if user_input.lower() == 'exit':
                 break
 
             messages.append(
                 Message(
                     role=Role.USER,
-                    content=query
+                    content=user_input
                 )
             )
 
