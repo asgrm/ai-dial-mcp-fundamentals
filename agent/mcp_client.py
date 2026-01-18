@@ -1,7 +1,6 @@
 from typing import Optional, Any
 
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult, TextContent, GetPromptResult, ReadResourceResult, Resource, TextResourceContents, BlobResourceContents, Prompt
 from pydantic import AnyUrl

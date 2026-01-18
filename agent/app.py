@@ -47,22 +47,22 @@ async def main():
                 )
             )
     # 7. Create console chat (infinite loop + ability to exit from chat + preserve message history after the call to dial client)
-    print("MCP-based Agent is ready! Type your query or 'exit' to exit.")
-    while True:
-        query = input("> ").strip()
-        if query.lower() == 'exit':
-            print("exiting the chat")
-            break
+        print("MCP-based Agent is ready! Type your query or 'exit' to exit.")
+        while True:
+            query = input("> ").strip()
+            if query.lower() == 'exit':
+                print("exiting the chat")
+                break
 
-        messages.append(
-            Message(
-                role=Role.USER,
-                content=query
+            messages.append(
+                Message(
+                    role=Role.USER,
+                    content=query
+                )
             )
-        )
 
-        ai_message: Message = await dial_client.get_completion(messages)
-        messages.append(ai_message)
+            ai_message: Message = await dial_client.get_completion(messages)
+            messages.append(ai_message)
 
 if __name__ == "__main__":
     asyncio.run(main())
