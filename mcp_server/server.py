@@ -10,8 +10,10 @@ from user_client import UserClient
 #       - name is "users-management-mcp-server",
 #       - host is "0.0.0.0",
 #       - port is 8005,
-# 2. Create UserClient
 
+mcp = FastMCP(name="users-management-mcp-server",  host="0.0.0.0", port=8005, log_level="DEBUG")
+# 2. Create UserClient
+user_client =  UserClient()
 
 # ==================== TOOLS ====================
 #TODO:
@@ -22,10 +24,31 @@ from user_client import UserClient
 # ---
 # Tools:
 # 1. `get_user_by_id`:-
+@mcp.tool()
+async def get_user_by_id(user_id: int) -> str:
+    """Get user info by user_id"""
+    return await user_client.get_user(user_id)
 # 2. `delete_user`:-
+@mcp.tool()
+async def delete_user(user_id: int) -> str:
+    """Deletes user by user_id"""
+    return await user_client.delete_user(user_id)
 # 3. `search_user`:-
+@mcp.tool()
+async def search_user(search_request: UserSearchRequest) -> str:
+    """Search user by name | surname | email | gender"""
+    return await user_client.search_users(**search_request.model_dump())
 # 4. `add_user`:-
+@mcp.tool()
+async def add_user(user_create_model: UserCreate) -> str:
+    """Adds new user into the system"""
+    return await user_client.add_user(user_create_model)
 # 5. `update_user`:-
+@mcp.tool()
+async def update_user(user_id: int, user_update_model: UserUpdate) -> str:
+    """Updates user by user_id"""
+    return await user_client.update_user(user_id, user_update_model)
+
 
 # ==================== MCP RESOURCES ====================
 
@@ -39,6 +62,23 @@ from user_client import UserClient
 #   - mime_type="image/png"
 # 2. You need to get `flow.png` picture from `mcp_server` folder and return it as bytes.
 # 3. Don't forget to provide resource description
+@mcp.resource(
+    uri="users-management://flow-diagram",
+
+    mime_type="image/png",
+)
+async def get_flow_diagram() -> bytes:
+    """User Service flow diagram as PNG image"""
+
+    image_path = Path(__file__).parent / "flow.png"
+
+    if not image_path.exists():
+        raise FileNotFoundError("flow.png not found")
+
+    with open(image_path, "rb") as f:
+        return f.read()
+
+
 
 
 # ==================== MCP PROMPTS ====================
@@ -50,13 +90,17 @@ from user_client import UserClient
 # Prompts are prepared, you need just properly return them and provide descriptions of them"
 
 # Helps users formulate effective search queries
-"""
-You are helping users search through a dynamic user database. The database contains 
+
+@mcp.prompt()
+async def user_search_assistant_prompt() -> str:
+    """Helps users formulate effective search queries"""
+    return """
+You are helping users search through a dynamic user database. The database contains
 realistic synthetic user profiles with the following searchable fields:
 
 ## Available Search Parameters
 - **name**: First name (partial matching, case-insensitive)
-- **surname**: Last name (partial matching, case-insensitive)  
+- **surname**: Last name (partial matching, case-insensitive)
 - **email**: Email address (partial matching, case-insensitive)
 - **gender**: Exact match (male, female, other, prefer_not_to_say)
 
@@ -67,7 +111,7 @@ realistic synthetic user profiles with the following searchable fields:
 - Try common variations: "mike" vs "michael", "liz" vs "elizabeth"
 - Consider cultural name variations
 
-### For Email Searches  
+### For Email Searches
 - Search by domain: "gmail" for all Gmail users
 - Search by name patterns: "john" for emails containing john
 - Use company names to find business emails
@@ -84,7 +128,7 @@ realistic synthetic user profiles with the following searchable fields:
 ## Example Search Patterns
 ```
 "Find all Johns" → name="john"
-"Gmail users named Smith" → email="gmail" + surname="smith"  
+"Gmail users named Smith" → email="gmail" + surname="smith"
 "Female users with company emails" → gender="female" + email="company"
 "Users with Johnson surname" → surname="johnson"
 ```
@@ -96,19 +140,23 @@ realistic synthetic user profiles with the following searchable fields:
 4. Combine multiple criteria for precision
 5. Remember searches are case-insensitive
 
-When helping users search, suggest multiple search strategies and explain 
+When helping users search, suggest multiple search strategies and explain
 why certain approaches might be more effective for their goals.
 """
 
 
 # Guides creation of realistic user profiles
-"""
-You are helping create realistic user profiles for the system. Follow these guidelines 
+
+@mcp.prompt()
+async def user_creation_assistant_prompt() -> str:
+    """Guides creation of realistic user profiles"""
+    return """
+You are helping create realistic user profiles for the system. Follow these guidelines
 to ensure data consistency and realism.
 
 ## Required Fields
 - **name**: 2-50 characters, letters only, culturally appropriate
-- **surname**: 2-50 characters, letters only  
+- **surname**: 2-50 characters, letters only
 - **email**: Valid format, must be unique in system
 - **about_me**: Rich, realistic biography (see guidelines below)
 
@@ -122,11 +170,11 @@ to ensure data consistency and realism.
 ## Address Guidelines
 Provide complete, realistic addresses:
 - **country**: Full country names
-- **city**: Actual city names  
+- **city**: Actual city names
 - **street**: Realistic street addresses
 - **flat_house**: Apartment/unit format (Apt 123, Unit 5B, Suite 200)
 
-## Credit Card Guidelines  
+## Credit Card Guidelines
 Generate realistic but non-functional card data:
 - **num**: 16 digits formatted as XXXX-XXXX-XXXX-XXXX
 - **cvv**: 3 digits (000-999)
@@ -140,7 +188,7 @@ Create engaging, realistic biographies that include:
 - Authentic voice and writing style
 - Cultural and demographic appropriateness
 
-### Interests & Hobbies  
+### Interests & Hobbies
 - 2-4 specific hobbies or activities
 - 1-3 broader interests or passion areas
 - 1-2 life goals or aspirations
@@ -148,7 +196,7 @@ Create engaging, realistic biographies that include:
 ### Biography Templates
 Use varied narrative structures:
 - "I'm a [trait] person who loves [hobbies]..."
-- "When I'm not working, you can find me [activity]..."  
+- "When I'm not working, you can find me [activity]..."
 - "Life is all about balance for me. I enjoy [interests]..."
 - "As someone who's [trait], I find great joy in [hobby]..."
 
@@ -167,7 +215,7 @@ Use varied narrative structures:
 
 When creating profiles, aim for diversity in:
 - Geographic representation
-- Age distribution  
+- Age distribution
 - Interest variety
 - Socioeconomic backgrounds
 - Cultural backgrounds
@@ -177,4 +225,4 @@ When creating profiles, aim for diversity in:
 if __name__ == "__main__":
     #TODO:
     # Run server with `transport="streamable-http"`
-    raise NotImplementedError()
+    mcp.run(transport="streamable-http")
