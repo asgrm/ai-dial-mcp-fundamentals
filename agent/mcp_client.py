@@ -15,10 +15,17 @@ class MCPClient:
         self._process = None
 
     async def __aenter__(self):
+        # docker version
         server_params = StdioServerParameters(
             command="docker",
             args=["run", "--rm", "-i", self.docker_image]
         )
+        # wsl version
+
+        # server_params = StdioServerParameters(
+        #     command="wsl",
+        #     args=["docker", "run", "--rm", "-i", self.docker_image]
+        # )
 
         print(f"Starting Docker container: {self.docker_image}")
         self._stdio_context = stdio_client(server_params)
